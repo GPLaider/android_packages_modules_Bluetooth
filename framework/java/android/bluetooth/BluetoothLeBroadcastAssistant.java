@@ -22,6 +22,7 @@ import static android.Manifest.permission.BLUETOOTH_SCAN;
 import static android.bluetooth.BluetoothProfile.CONNECTION_POLICY_ALLOWED;
 import static android.bluetooth.BluetoothProfile.CONNECTION_POLICY_FORBIDDEN;
 import static android.bluetooth.BluetoothProfile.STATE_DISCONNECTED;
+import static android.bluetooth.BluetoothUtils.enforcePermissionInFramework;
 
 import static java.util.Objects.requireNonNull;
 
@@ -34,6 +35,7 @@ import android.annotation.RequiresNoPermission;
 import android.annotation.RequiresPermission;
 import android.annotation.SdkConstant;
 import android.annotation.SystemApi;
+import android.app.compat.gms.GmsCompat;
 import android.bluetooth.annotations.RequiresBluetoothConnectPermission;
 import android.bluetooth.annotations.RequiresBluetoothLocationPermission;
 import android.bluetooth.annotations.RequiresBluetoothScanPermission;
@@ -492,6 +494,7 @@ public final class BluetoothLeBroadcastAssistant implements BluetoothProfile, Au
             "android.bluetooth.action.CONNECTION_STATE_CHANGED";
 
     private final CloseGuard mCloseGuard;
+    private final Context mContext;
     private final BluetoothAdapter mBluetoothAdapter;
     private final AttributionSource mAttributionSource;
 
@@ -504,6 +507,7 @@ public final class BluetoothLeBroadcastAssistant implements BluetoothProfile, Au
      */
     /*package*/ BluetoothLeBroadcastAssistant(
             @NonNull Context context, @NonNull BluetoothAdapter bluetoothAdapter) {
+        mContext = context;
         mBluetoothAdapter = bluetoothAdapter;
         mAttributionSource = bluetoothAdapter.getAttributionSource();
         mService = null;
@@ -742,6 +746,13 @@ public final class BluetoothLeBroadcastAssistant implements BluetoothProfile, Au
         requireNonNull(callback);
         log("registerCallback");
 
+        try {
+            enforcePermissionInFramework(mContext, BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED);
+        } catch (SecurityException se) {
+            GmsCompat.catchOrRethrow(se);
+            return;
+        }
+
         synchronized (mCallbackExecutorMap) {
             // If the callback map is empty, we register the service-to-app callback
             if (mCallbackExecutorMap.isEmpty()) {
@@ -789,6 +800,13 @@ public final class BluetoothLeBroadcastAssistant implements BluetoothProfile, Au
     public void unregisterCallback(@NonNull Callback callback) {
         requireNonNull(callback);
         log("unregisterCallback");
+
+        try {
+            enforcePermissionInFramework(mContext, BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED);
+        } catch (SecurityException se) {
+            GmsCompat.catchOrRethrow(se);
+            return;
+        }
 
         synchronized (mCallbackExecutorMap) {
             if (mCallbackExecutorMap.remove(callback) == null) {

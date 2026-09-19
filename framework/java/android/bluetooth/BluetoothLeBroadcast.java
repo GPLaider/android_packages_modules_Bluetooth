@@ -18,6 +18,7 @@ package android.bluetooth;
 
 import static android.Manifest.permission.BLUETOOTH_CONNECT;
 import static android.Manifest.permission.BLUETOOTH_PRIVILEGED;
+import static android.bluetooth.BluetoothUtils.enforcePermissionInFramework;
 import static android.bluetooth.BluetoothUtils.executeFromBinder;
 
 import static java.util.Objects.requireNonNull;
@@ -30,6 +31,7 @@ import android.annotation.RequiresNoPermission;
 import android.annotation.RequiresPermission;
 import android.annotation.SuppressLint;
 import android.annotation.SystemApi;
+import android.app.compat.gms.GmsCompat;
 import android.bluetooth.annotations.RequiresBluetoothConnectPermission;
 import android.content.AttributionSource;
 import android.content.Context;
@@ -64,6 +66,7 @@ public final class BluetoothLeBroadcast implements AutoCloseable, BluetoothProfi
 
     private final CloseGuard mCloseGuard;
 
+    private final Context mContext;
     private final BluetoothAdapter mAdapter;
     private final AttributionSource mAttributionSource;
 
@@ -272,6 +275,7 @@ public final class BluetoothLeBroadcast implements AutoCloseable, BluetoothProfi
      * @hide
      */
     /*package*/ BluetoothLeBroadcast(Context context, BluetoothAdapter adapter) {
+        mContext = context;
         mAdapter = adapter;
         mAttributionSource = mAdapter.getAttributionSource();
         mService = null;
@@ -346,6 +350,12 @@ public final class BluetoothLeBroadcast implements AutoCloseable, BluetoothProfi
         requireNonNull(callback);
 
         Log.d(TAG, "registerCallback");
+        try {
+            enforcePermissionInFramework(mContext, BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED);
+        } catch (SecurityException se) {
+            GmsCompat.catchOrRethrow(se);
+            return;
+        }
 
         synchronized (mCallbackExecutorMap) {
             // If the callback map is empty, we register the service-to-app callback
@@ -395,6 +405,12 @@ public final class BluetoothLeBroadcast implements AutoCloseable, BluetoothProfi
         requireNonNull(callback);
 
         Log.d(TAG, "unregisterCallback");
+        try {
+            enforcePermissionInFramework(mContext, BLUETOOTH_CONNECT, BLUETOOTH_PRIVILEGED);
+        } catch (SecurityException se) {
+            GmsCompat.catchOrRethrow(se);
+            return;
+        }
 
         synchronized (mCallbackExecutorMap) {
             if (mCallbackExecutorMap.remove(callback) == null) {
